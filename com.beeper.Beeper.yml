@@ -1,0 +1,68 @@
+id: com.beeper.Beeper
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '23.08'
+appstream-compose: false
+command: beeper
+rename-icon: beeper
+finish-args:
+  - --device=dri
+  - --share=ipc
+  - --share=network
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --socket=system-bus
+  - --talk-name=org.freedesktop.Notifications
+modules:
+  - shared-modules/libsecret/libsecret.json
+
+  - name: beeper
+    buildsystem: simple
+    build-commands:
+      - chmod +x Beeper.AppImage
+      - ./Beeper.AppImage --appimage-extract
+      - rm Beeper.AppImage
+
+      - desktop-file-edit --set-icon ${FLATPAK_ID} --set-key Exec --set-value 'beeper
+        %u' squashfs-root/beeper.desktop
+      - install -Dm644 squashfs-root/beeper.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+
+      - install -Dm755 beeper.sh ${FLATPAK_DEST}/bin/beeper
+      - install -Dm644 com.beeper.Beeper.metainfo.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
+
+      - mkdir -p ${FLATPAK_DEST}/share/icons/hicolor
+      - cp -r squashfs-root/usr/share/icons/hicolor/* ${FLATPAK_DEST}/share/icons/hicolor
+      # flatpak doesn't support icons larger than 512x512
+      - rm -rf ${FLATPAK_DEST}/share/icons/hicolor/1024x1024
+
+      - rm -rf squashfs-root/resources/icons/win
+
+      - mv squashfs-root ${FLATPAK_DEST}/beeper
+
+      # To allow separate locales
+      # https://searchfox.org/mozilla-central/rev/8a4f55bc09ffc5c25dcb4586c51ae4a9fee77b4c/taskcluster/docker/firefox-flatpak/runme.sh#131-133
+      - |
+        for lang in ${FLATPAK_DEST}/beeper/locales/*.pak
+        do
+          locale="$(basename -s .pak $lang)"
+          install -Dm644 -t "${FLATPAK_DEST}/share/runtime/locale/${locale%%-*}/" "$lang"
+          ln -sf "${FLATPAK_DEST}/share/runtime/locale/${locale%%-*}/$(basename $lang)" "${FLATPAK_DEST}/beeper/locales/$(basename $lang)"
+        done
+    sources:
+      - type: file
+        only-arches: [x86_64]
+        url: https://download.beeper.com/linux/appImage/x64
+        sha512: d47010e3549f08e0778defe856ab41d2e37b0422b874c789e4d2a6ae09ef40723e4ae11b4978ab7d7bc3d83c1a71890766a3fb36e6534053eaf81d5c7359fc1f
+        dest_filename: Beeper.AppImage
+        x-checker-data:
+          type: electron-updater
+          url: https://download.todesktop.com/2003241lzgn20jd/latest-linux.yml
+          url-template: https://download.beeper.com/versions/$version/linux/appImage/x64
+      - type: file
+        path: beeper.sh
+
+      - type: file
+        path: com.beeper.Beeper.metainfo.xml

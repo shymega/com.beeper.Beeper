@@ -1,0 +1,24 @@
+[project]
+name = "beeper-flatpak-bump"
+version = "0.1.0"
+description = "[UNOFFICIAL] A small utility for bumping the version of Beeper Desktop for Linux (x86_64 currently) in the Flatpak."
+authors = [
+    {name = "Dom Rodriguez", email = "shymega@shymega.org.uk"},
+]
+dependencies = [
+    "pyyaml>=6.0.2",
+    "requests>=2.32.3",
+]
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project.scripts]
+beeper-flatpak-bump = "beeper_flatpak_bump.__main__:main"
+
+[tool.pdm]
+distribution = true
